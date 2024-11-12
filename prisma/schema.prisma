@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleType {
+  ADMINISTRADOR
+  ESTUDIANTE
+}
+
+// Modelo para "roles"
+model Role {
+  id     Int     @id @default(autoincrement())
+  nombre RoleType @unique
+  usuarios Usuario[]
+}
+
+// Modelo para "usuarios"
+model Usuario {
+  id                   Int      @id @default(autoincrement())
+  nombres              String   @db.VarChar(15)
+  apellidos            String   @db.VarChar(15)
+  email                String   @unique @db.VarChar(30)
+  password             String   @db.VarChar(100)
+  rol_id               Int
+  fecha_creacion       DateTime
+
+  rol                  Role     @relation(fields: [rol_id], references: [id])
+  inscripciones        Inscripcion[]
+  cursos_creados       Curso[]  @relation("UsuarioCursos")
+
+  @@index([rol_id])
+}
+
+// Modelo para "inscripciones"
+model Inscripcion {
+  id                Int      @id @default(autoincrement())
+  usuario_id        Int
+  curso_id          Int
+  fecha_inscripcion DateTime
+  estado            String   @db.VarChar(45)
+  
+  usuario           Usuario  @relation(fields: [usuario_id], references: [id])
+  curso             Curso    @relation(fields: [curso_id], references: [id])
+
+  @@index([usuario_id])
+  @@index([curso_id])
+}
+
+// Modelo para "cursos"
+model Curso {
+  id                 Int         @id @default(autoincrement())
+  titulo             String      @db.VarChar(35)
+  descripcion        String      @db.Text
+  fecha_creacion     DateTime
+  creador_id         Int
+  fecha_finalizacion DateTime
+
+  creador            Usuario     @relation("UsuarioCursos", fields: [creador_id], references: [id])
+  inscripciones      Inscripcion[]
+  recursos           Recurso[]
+  categorias         CategoriaCurso[]
+
+  @@index([creador_id])
+}
+
+// Modelo para "recursos"
+model Recurso {
+  id         Int     @id @default(autoincrement())
+  curso_id   Int
+  tipo       String  @db.VarChar(15)
+  url        String  @db.VarChar(255)
+
+  curso      Curso   @relation(fields: [curso_id], references: [id])
+
+  @@index([curso_id])
+}
+
+// Modelo para "categorias"
+model Categoria {
+  id          Int            @id @default(autoincrement())
+  nombre      String         @db.VarChar(45)
+  descripcion String         @db.VarChar(100)
+  cursos      CategoriaCurso[]
+}
+
+// Modelo para "categoria_curso"
+model CategoriaCurso {
+  id           Int        @id @default(autoincrement())
+  curso_id     Int
+  categoria_id Int
+
+  curso        Curso      @relation(fields: [curso_id], references: [id])
+  categoria    Categoria  @relation(fields: [categoria_id], references: [id])
+
+  @@index([curso_id])
+  @@index([categoria_id])
+}
